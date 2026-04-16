@@ -5,17 +5,21 @@ on:
     branches:
       - main
       - master
+    paths:
+      - 'proto/**'
+
 jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Protos Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Обновлено до v4
 
       - name: Install Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5 # Обновлено до v5
         with:
-          go-version: '1.21'
+          go-version: '1.22'
+          cache: false # Отключаем поиск go.sum, так как его тут нет
 
       - name: Install Protoc
         run: |
@@ -27,6 +31,7 @@ jobs:
       - name: Generate Code
         run: |
           mkdir -p gen
+          # Важно: убедись, что пути к файлам совпадают с твоей структурой папок
           protoc --proto_path=proto \
             --go_out=gen --go_opt=paths=source_relative \
             --go-grpc_out=gen --go-grpc_opt=paths=source_relative \
@@ -35,19 +40,26 @@ jobs:
 
       - name: Push to Generated Repo
         env:
-          
           GH_TOKEN: ${{ secrets.PROTO_GEN_TOKEN }}
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
           
-          # Клонируем второй репозиторий
-          git clone https://x-access-token:${GH_TOKEN}@github.com/Baxadu1/grpc-generated.git target
+          # Клонируем второй репозиторий (замени твой-юзернейм)
+          git clone https://x-access-token:${GH_TOKEN}@github.com/твой-юзернейм/grpc-generated.git target
           
-          # Копируем сгенерированные файлы
+          # Очищаем старые файлы в целевом репо (кроме .git и go.mod)
+          find target -mindepth 1 -maxdepth 1 ! -name '.git' ! -name 'go.mod' -exec rm -rf {} +
+          
+          # Копируем свежесгенерированный код
           cp -r gen/* target/
           
           cd target
           git add .
-          git commit -m "Auto-generate code from protos" || echo "No changes to commit"
-          git push origin main
+          # Коммитим только если есть изменения, чтобы избежать ошибки Exit Code 1
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "Auto-generate code from protos"
+            git push origin main
+          else
+            echo "No changes to commit"
+          fi
