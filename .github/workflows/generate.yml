@@ -19,16 +19,18 @@ jobs:
           go-version: '1.22'
           cache: false
 
-      - name: Install Protoc
+      - name: Install Protoc and Plugins
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler
+          # Установка последних версий плагинов
           go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
           go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
       - name: Generate Code
         run: |
           mkdir -p gen
+          # Добавляем флаги для совместимости с новыми версиями
           protoc --proto_path=proto \
             --go_out=gen --go_opt=paths=source_relative \
             --go-grpc_out=gen --go-grpc_opt=paths=source_relative \
@@ -41,13 +43,18 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
           git clone https://x-access-token:${GH_TOKEN}@github.com/Baxadu1/grpc-generated.git target
+          
+          # Очищаем старые файлы в таргете, чтобы не было конфликтов версий
+          rm -rf target/order target/payment
+          
           cp -r gen/* target/
           cd target
           git add .
           if git diff-index --quiet HEAD; then
             echo "No changes to commit"
           else
-            git commit -m "Auto-generate gRPC code"
+            git commit -m "Fix: Re-generate with Go 1.22 compliance"
             git push origin main
           fi
