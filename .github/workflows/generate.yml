@@ -1,0 +1,53 @@
+name: Generate gRPC Code
+
+on:
+  push:
+    branches:
+      - main
+      - master
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Protos Repo
+        uses: actions/checkout@v3
+
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Install Protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+      - name: Generate Code
+        run: |
+          mkdir -p gen
+          protoc --proto_path=proto \
+            --go_out=gen --go_opt=paths=source_relative \
+            --go-grpc_out=gen --go-grpc_opt=paths=source_relative \
+            proto/payment/payment.proto \
+            proto/order/order.proto
+
+      - name: Push to Generated Repo
+        env:
+          
+          GH_TOKEN: ${{ secrets.PROTO_GEN_TOKEN }}
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          
+          # Клонируем второй репозиторий
+          git clone https://x-access-token:${GH_TOKEN}@github.com/Baxadu1/grpc-generated.git target
+          
+          # Копируем сгенерированные файлы
+          cp -r gen/* target/
+          
+          cd target
+          git add .
+          git commit -m "Auto-generate code from protos" || echo "No changes to commit"
+          git push origin main
