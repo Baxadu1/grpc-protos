@@ -5,8 +5,8 @@ on:
     branches:
       - main
       - master
-    paths:
-      - 'proto/**'
+    #paths:
+      #- 'proto/**'
 
 jobs:
   generate:
