@@ -4,7 +4,7 @@ package payment;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/твой-юзернейм/grpc-generated/payment;payment";
+option go_package = "github.com/Baxadu1/grpc-generated/payment;payment";
 
 service PaymentService {
   rpc ProcessPayment (PaymentRequest) returns (PaymentResponse);
