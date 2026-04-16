@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package order;
+
+import "google/protobuf/timestamp.proto";
+
+
+option go_package = "github.com/Baxadu1/grpc-generated/order;order";
+
+service OrderService {
+  rpc SubscribeToOrderUpdates (OrderRequest) returns (stream OrderStatusUpdate);
+}
+
+message OrderRequest {
+  string order_id = 1;
+}
+
+message OrderStatusUpdate {
+  string order_id = 1;
+  string status = 2; // Например: "Pending", "Paid", "Shipped"
+  google.protobuf.Timestamp updated_at = 3;
+}
